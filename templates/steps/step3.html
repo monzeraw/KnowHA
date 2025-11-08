@@ -1,0 +1,67 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<!-- Step 3: Analysis -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+    <div class="mb-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-2">Document Analysis</h2>
+        <p class="text-gray-600">Analyzing your {{ knowledge_types[current_doc_type].title.lower() }} document...</p>
+    </div>
+
+    <div class="analysis-section">
+        {% if not analysis %}
+        <div class="loading-container text-center py-12">
+            <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
+            <p class="mt-4 text-gray-600">Analyzing document content...</p>
+        </div>
+        {% else %}
+        <div class="analysis-results">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-gray-50 rounded-lg p-6">
+                    <h4 class="font-medium text-gray-900 mb-4">Document Structure</h4>
+                    <ul class="space-y-2">
+                        {% for item in analysis.structure %}
+                        <li class="flex items-center text-sm text-gray-600">
+                            <svg class="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            {{ item }}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <div class="bg-gray-50 rounded-lg p-6">
+                    <h4 class="font-medium text-gray-900 mb-4">Improvement Suggestions</h4>
+                    <ul class="space-y-2">
+                        {% for item in analysis.suggestions %}
+                        <li class="flex items-start text-sm text-gray-600">
+                            <svg class="w-4 h-4 mr-2 mt-1 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                            </svg>
+                            {{ item }}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+
+            <div class="mt-8">
+                <h4 class="font-medium text-gray-900 mb-4">Quality Score</h4>
+                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                    <div class="bg-blue-600 h-2.5 rounded-full transition-all duration-1000" 
+                         style="width: {{ analysis.quality_score }}%">
+                    </div>
+                </div>
+                <p class="text-sm text-gray-600 mt-2">Score: {{ analysis.quality_score }}/100</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Error message display -->
+    <div id="error-message" class="hidden mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+        <p class="text-red-800 text-sm"></p>
+    </div>
+</div>
+{% endblock %}

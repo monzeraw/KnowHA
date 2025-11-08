@@ -1,0 +1,45 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<!-- Step 5: Share -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+    <div class="mb-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-2">Share Document</h2>
+        <p class="text-gray-600">Share your enhanced {{ knowledge_types[current_doc_type].title.lower() }} document.</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-gray-50 rounded-lg p-6">
+            <h4 class="font-medium text-gray-900 mb-4">Download Options</h4>
+            <div class="space-y-4">
+                <button class="w-full flex items-center justify-center px-4 py-2 border border-blue-600 rounded-lg text-blue-600 hover:bg-blue-50">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    </svg>
+                    Download as PDF
+                </button>
+                <button class="w-full flex items-center justify-center px-4 py-2 border border-blue-600 rounded-lg text-blue-600 hover:bg-blue-50">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    </svg>
+                    Download as DOCX
+                </button>
+            </div>
+        </div>
+
+        <div class="bg-gray-50 rounded-lg p-6">
+            <h4 class="font-medium text-gray-900 mb-4">Share Link</h4>
+            <div class="space-y-4">
+                <div class="flex items-center">
+                    <input type="text" value="https://example.com/share/123" readonly
+                           class="flex-1 px-3 py-2 border rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <button class="px-4 py-2 bg-blue-600 text-white rounded-r-lg hover:bg-blue-700">
+                        Copy
+                    </button>
+                </div>
+                <p class="text-sm text-gray-500">Link expires in 24 hours</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

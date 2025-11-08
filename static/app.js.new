@@ -1,0 +1,238 @@
+// Global state
+let selectedDocType = null;
+
+// Generic error handler
+function showError(message) {
+    const errorDiv = document.getElementById('error-message');
+    if (errorDiv) {
+        errorDiv.textContent = message;
+        errorDiv.classList.remove('hidden');
+        setTimeout(() => {
+            errorDiv.classList.add('hidden');
+        }, 5000);
+    } else {
+        alert(message);
+    }
+}
+
+function getCurrentStep() {
+    const path = window.location.pathname;
+    const match = path.match(/\/step\/(\d+)/);
+    return match ? parseInt(match[1]) : 1;
+}
+
+function updateNextButtonState(enabled) {
+    const nextButton = document.querySelector('button[onclick="nextStep()"]');
+    if (nextButton) {
+        nextButton.disabled = !enabled;
+        if (enabled) {
+            nextButton.classList.remove('opacity-50', 'cursor-not-allowed');
+        } else {
+            nextButton.classList.add('opacity-50', 'cursor-not-allowed');
+        }
+    }
+}
+
+async function nextStep() {
+    const currentStep = getCurrentStep();
+    
+    // Disable the button to prevent double clicks
+    updateNextButtonState(false);
+    
+    try {
+        // Step-specific validations
+        if (currentStep === 1 && !selectedDocType) {
+            showError('Please select a document type first');
+            updateNextButtonState(true);
+            return;
+        }
+        
+        // For step 2, check if file is uploaded
+        if (currentStep === 2 && !document.querySelector('.upload-status')) {
+            showError('Please upload a file first');
+            updateNextButtonState(true);
+            return;
+        }
+        
+        // Call the API to move to next step
+        const response = await fetch('/api/next-step', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ current_step: currentStep })
+        });
+        
+        const data = await response.json();
+        if (data.success && data.next_step) {
+            window.location.href = `/step/${data.next_step}`;
+        } else {
+            showError(data.error || 'Failed to proceed to next step');
+            updateNextButtonState(true);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showError('Failed to proceed to next step. Please try again.');
+        updateNextButtonState(true);
+    }
+}
+
+// Document type selection initialization
+function initializeDocTypeSelection() {
+    console.log('Initializing document type selection...');
+    const docTypeCards = document.querySelectorAll('.document-type-card');
+    
+    if (!docTypeCards.length) {
+        console.log('No document type cards found');
+        return;
+    }
+    
+    console.log('Found', docTypeCards.length, 'document type cards');
+    
+    docTypeCards.forEach(card => {
+        card.addEventListener('click', async function() {
+            const type = this.dataset.type;
+            console.log('Card clicked:', type);
+            
+            // Remove selection from all cards
+            docTypeCards.forEach(c => {
+                c.classList.remove('selected');
+                const checkIcon = c.querySelector('.check-icon');
+                if (checkIcon) checkIcon.classList.add('hidden');
+                const cardContent = c.querySelector('.card-content');
+                if (cardContent) {
+                    cardContent.classList.remove('border-blue-500', 'bg-blue-50');
+                }
+            });
+            
+            // Add selection to clicked card
+            this.classList.add('selected');
+            const checkIcon = this.querySelector('.check-icon');
+            if (checkIcon) checkIcon.classList.remove('hidden');
+            const cardContent = this.querySelector('.card-content');
+            if (cardContent) {
+                cardContent.classList.add('border-blue-500', 'bg-blue-50');
+            }
+            
+            try {
+                const response = await fetch('/api/select-type', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({ type: type })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    console.log('Selection successful:', type);
+                    selectedDocType = type;
+                    updateNextButtonState(true);
+                } else {
+                    console.error('Selection failed:', data.error);
+                    showError(data.error || 'Failed to select document type');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showError('Failed to select document type. Please try again.');
+            }
+        });
+    });
+    
+    // Disable next button initially if no type is selected
+    if (!selectedDocType) {
+        updateNextButtonState(false);
+    }
+}
+
+// File upload handling
+function initializeFileUpload() {
+    const uploadZone = document.getElementById('uploadZone');
+    const fileInput = document.getElementById('fileInput');
+    
+    if (!uploadZone || !fileInput) return;
+
+    uploadZone.addEventListener('click', () => fileInput.click());
+    
+    uploadZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadZone.classList.add('border-blue-500');
+    });
+    
+    uploadZone.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        uploadZone.classList.remove('border-blue-500');
+    });
+    
+    uploadZone.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        uploadZone.classList.remove('border-blue-500');
+        
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            await handleFileUpload(files[0]);
+        }
+    });
+    
+    fileInput.addEventListener('change', async (e) => {
+        if (e.target.files.length > 0) {
+            await handleFileUpload(e.target.files[0]);
+        }
+    });
+}
+
+async function handleFileUpload(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+        const response = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            // Show success feedback
+            const fileInfo = document.createElement('div');
+            fileInfo.className = 'mt-6 p-4 bg-blue-50 rounded-lg upload-status';
+            fileInfo.innerHTML = `
+                <h4 class="font-medium text-blue-900">Current File:</h4>
+                <p class="text-sm text-blue-800">${data.file_info.name} (${(data.file_info.size / 1024 / 1024).toFixed(2)}MB)</p>
+            `;
+            
+            // Replace or add file info section
+            const existingFileInfo = document.querySelector('.upload-status');
+            if (existingFileInfo) {
+                existingFileInfo.replaceWith(fileInfo);
+            } else {
+                document.getElementById('uploadZone').insertAdjacentElement('afterend', fileInfo);
+            }
+            
+            // Update next button state
+            updateNextButtonState(true);
+        } else {
+            showError(data.error || 'Failed to upload file');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showError('Failed to upload file. Please try again.');
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const currentStep = getCurrentStep();
+    console.log('Current step:', currentStep);
+    
+    // Initialize based on current step
+    switch(currentStep) {
+        case 1:
+            initializeDocTypeSelection();
+            break;
+        case 2:
+            initializeFileUpload();
+            break;
+    }
+});

@@ -1,0 +1,146 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="text-center mb-16">
+    <div class="inline-block">
+        <div class="relative">
+            <div class="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 blur-3xl opacity-20 animate-pulse"></div>
+            <h2 class="relative text-5xl md:text-6xl font-extrabold mb-4">
+                <span class="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                    Transform Your Documents
+                </span>
+            </h2>
+        </div>
+    </div>
+    <p class="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+        Create professional knowledge documents with AI-powered analysis and recommendations
+    </p>
+    
+    <!-- Feature Pills -->
+    <div class="flex flex-wrap justify-center gap-4 mb-12">
+        <div class="px-6 py-3 bg-white rounded-full shadow-lg border border-gray-200 flex items-center space-x-2">
+            <i class="fas fa-bolt text-yellow-500"></i>
+            <span class="text-sm font-medium text-gray-700">AI-Powered</span>
+        </div>
+        <div class="px-6 py-3 bg-white rounded-full shadow-lg border border-gray-200 flex items-center space-x-2">
+            <i class="fas fa-shield-alt text-green-500"></i>
+            <span class="text-sm font-medium text-gray-700">Secure</span>
+        </div>
+        <div class="px-6 py-3 bg-white rounded-full shadow-lg border border-gray-200 flex items-center space-x-2">
+            <i class="fas fa-rocket text-blue-500"></i>
+            <span class="text-sm font-medium text-gray-700">Fast</span>
+        </div>
+        <div class="px-6 py-3 bg-white rounded-full shadow-lg border border-gray-200 flex items-center space-x-2">
+            <i class="fas fa-check-double text-purple-500"></i>
+            <span class="text-sm font-medium text-gray-700">Quality Assured</span>
+        </div>
+    </div>
+</div>
+
+<!-- Document Types Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+    {% for key, doc_type in knowledge_types.items() %}
+    <div class="document-type-card group cursor-pointer transform transition-all duration-300 hover:scale-105" 
+         data-type="{{ key }}">
+        <div class="relative bg-white rounded-2xl shadow-xl hover:shadow-2xl p-8 border-2 border-gray-100 hover:border-blue-500 transition-all duration-300 overflow-hidden">
+            <!-- Gradient overlay on hover -->
+            <div class="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            
+            <!-- Check icon (hidden by default) -->
+            <div class="check-icon hidden absolute top-4 right-4 w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center transform scale-0 group-hover:scale-100 transition-transform duration-300">
+                <i class="fas fa-check text-white text-lg"></i>
+            </div>
+            
+            <!-- Icon -->
+            <div class="relative mb-6 flex items-center justify-center">
+                <div class="w-20 h-20 bg-gradient-to-br {% if key == 'bestPractices' %}from-blue-500 to-blue-600{% elif key == 'lessonsLearned' %}from-purple-500 to-purple-600{% elif key == 'engineeringReport' %}from-pink-500 to-pink-600{% else %}from-indigo-500 to-indigo-600{% endif %} rounded-2xl flex items-center justify-center shadow-lg transform group-hover:rotate-6 transition-transform duration-300">
+                    {% if key == 'bestPractices' %}
+                    <i class="fas fa-trophy text-white text-3xl"></i>
+                    {% elif key == 'lessonsLearned' %}
+                    <i class="fas fa-lightbulb text-white text-3xl"></i>
+                    {% elif key == 'engineeringReport' %}
+                    <i class="fas fa-file-contract text-white text-3xl"></i>
+                    {% else %}
+                    <i class="fas fa-cogs text-white text-3xl"></i>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Content -->
+            <div class="relative text-center">
+                <h3 class="text-2xl font-bold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors">
+                    {{ doc_type.title }}
+                </h3>
+                <p class="text-gray-600 mb-6 leading-relaxed">
+                    {{ doc_type.description }}
+                </p>
+                
+                <!-- Download buttons -->
+                <div class="flex gap-3 justify-center">
+                    <a href="{{ url_for('download_template', doc_type=key) }}" 
+                       class="inline-flex items-center space-x-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-all duration-200"
+                       onclick="event.stopPropagation()">
+                        <i class="fas fa-download"></i>
+                        <span>Template</span>
+                    </a>
+                    <a href="{{ url_for('download_sample', doc_type=key) }}" 
+                       class="inline-flex items-center space-x-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-sm font-medium transition-all duration-200"
+                       onclick="event.stopPropagation()">
+                        <i class="fas fa-file-alt"></i>
+                        <span>Sample</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Call to Action -->
+<div class="text-center mt-12">
+    <p class="text-gray-600 mb-4 flex items-center justify-center space-x-2">
+        <i class="fas fa-info-circle text-blue-600"></i>
+        <span>Select a document type above to get started</span>
+    </p>
+</div>
+
+<!-- Features Section -->
+<div class="mt-20 grid grid-cols-1 md:grid-cols-3 gap-8">
+    <div class="text-center p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300">
+        <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 transform hover:scale-110 transition-transform duration-300">
+            <i class="fas fa-upload text-white text-2xl"></i>
+        </div>
+        <h3 class="text-xl font-bold text-gray-900 mb-2">Upload or Create</h3>
+        <p class="text-gray-600">Upload existing documents or create new ones with our rich text editor</p>
+    </div>
+    
+    <div class="text-center p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300">
+        <div class="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 transform hover:scale-110 transition-transform duration-300">
+            <i class="fas fa-robot text-white text-2xl"></i>
+        </div>
+        <h3 class="text-xl font-bold text-gray-900 mb-2">AI Analysis</h3>
+        <p class="text-gray-600">Get intelligent insights and improvement suggestions powered by ChatGPT</p>
+    </div>
+    
+    <div class="text-center p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300">
+        <div class="w-16 h-16 bg-gradient-to-br from-pink-500 to-pink-600 rounded-2xl flex items-center justify-center mx-auto mb-4 transform hover:scale-110 transition-transform duration-300">
+            <i class="fas fa-sparkles text-white text-2xl"></i>
+        </div>
+        <h3 class="text-xl font-bold text-gray-900 mb-2">Enhance & Export</h3>
+        <p class="text-gray-600">Improve your document quality and export in professional formats</p>
+    </div>
+</div>
+
+<style>
+.document-type-card.selected .card-content {
+    border-color: #3b82f6 !important;
+    background-color: #eff6ff;
+}
+
+.document-type-card.selected .check-icon {
+    display: flex !important;
+    transform: scale(1) !important;
+}
+</style>
+{% endblock %}

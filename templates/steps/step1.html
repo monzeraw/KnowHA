@@ -1,0 +1,36 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<!-- Step 1: Document Type Selection -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+    <div class="mb-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-2">Select Document Type</h2>
+        <p class="text-gray-600">Choose the type of technical knowledge document you want to create or improve.</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {% for key, type in knowledge_types.items() %}
+        <div class="document-type-card {% if session.get('doc_type') == key %}selected{% endif %}" data-type="{{ key }}">
+            <div class="card-content relative p-6 border rounded-lg hover:bg-blue-50 transition-colors cursor-pointer group
+                       {% if session.get('doc_type') == key %}border-blue-500 bg-blue-50{% endif %}">
+                <div class="absolute top-3 right-3 check-icon {% if session.get('doc_type') != key %}hidden{% endif %}">
+                    <svg class="w-6 h-6 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ type.title }}</h3>
+                <p class="text-sm text-gray-600 mb-4">{{ type.description }}</p>
+                <div class="mt-4">
+                    <a href="{{ url_for('download_template', doc_type=key) }}" class="text-blue-600 text-sm hover:underline">Download Template</a>
+                    <span class="mx-2 text-gray-300">|</span>
+                    <a href="{{ url_for('download_sample', doc_type=key) }}" class="text-blue-600 text-sm hover:underline">View Sample</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Error Message -->
+    <div id="error-message" class="mt-4 bg-red-100 border-l-4 border-red-500 text-red-700 p-4 hidden"></div>
+</div>
+{% endblock %}

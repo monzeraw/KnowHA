@@ -1,0 +1,255 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="bg-white rounded-2xl shadow-xl border border-gray-200 p-8">
+    <div class="mb-8">
+        <h2 class="text-3xl font-bold text-gray-900 mb-2 flex items-center space-x-3">
+            <i class="fas fa-file-upload text-blue-600"></i>
+            <span>Upload or Create Document</span>
+        </h2>
+        <p class="text-gray-600">Upload an existing document or create new content using our rich text editor</p>
+    </div>
+
+    <!-- Tabs -->
+    <div class="mb-8">
+        <div class="flex border-b border-gray-200">
+            <button onclick="switchTab('upload')" id="tab-upload" 
+                    class="tab-button flex items-center space-x-2 px-6 py-3 font-semibold text-blue-600 border-b-2 border-blue-600 transition-all duration-200">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <span>Upload File</span>
+            </button>
+            <button onclick="switchTab('editor')" id="tab-editor" 
+                    class="tab-button flex items-center space-x-2 px-6 py-3 font-semibold text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300 transition-all duration-200">
+                <i class="fas fa-edit"></i>
+                <span>Create with Editor</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Upload Tab Content -->
+    <div id="content-upload" class="tab-content">
+        <div id="uploadZone" class="upload-zone relative border-3 border-dashed border-gray-300 rounded-2xl p-12 text-center hover:border-blue-500 hover:bg-blue-50/50 transition-all duration-300 cursor-pointer group">
+            <input type="file" id="fileInput" accept=".pdf,.docx" class="hidden">
+            
+            <!-- Upload Icon with animation -->
+            <div class="mb-6 flex justify-center">
+                <div class="relative">
+                    <div class="absolute inset-0 bg-blue-500 rounded-full blur-2xl opacity-20 group-hover:opacity-40 transition-opacity"></div>
+                    <div class="relative w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center transform group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 shadow-lg">
+                        <i class="fas fa-cloud-upload-alt text-white text-4xl"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <h3 class="text-2xl font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
+                Drop your file here
+            </h3>
+            <p class="text-gray-600 mb-4">or click to browse</p>
+            <p class="text-sm text-gray-500">Supports PDF and DOCX files (max 10MB)</p>
+            
+            <!-- File type indicators -->
+            <div class="mt-6 flex justify-center gap-4">
+                <div class="flex items-center space-x-2 px-4 py-2 bg-red-50 rounded-lg">
+                    <i class="fas fa-file-pdf text-red-600 text-xl"></i>
+                    <span class="text-sm font-medium text-red-600">PDF</span>
+                </div>
+                <div class="flex items-center space-x-2 px-4 py-2 bg-blue-50 rounded-lg">
+                    <i class="fas fa-file-word text-blue-600 text-xl"></i>
+                    <span class="text-sm font-medium text-blue-600">DOCX</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Upload Status (hidden by default) -->
+        <div id="uploadStatus" class="hidden mt-8 p-6 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl">
+            <div class="flex items-start space-x-4">
+                <div class="flex-shrink-0">
+                    <div class="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
+                        <i class="fas fa-check text-white text-xl"></i>
+                    </div>
+                </div>
+                <div class="flex-1">
+                    <h4 class="text-lg font-semibold text-green-900 mb-1">File Uploaded Successfully!</h4>
+                    <p id="fileInfoText" class="text-green-700 text-sm"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Editor Tab Content -->
+    <div id="content-editor" class="tab-content hidden">
+        <div class="mb-4 flex items-center justify-between">
+            <p class="text-gray-600 flex items-center space-x-2">
+                <i class="fas fa-lightbulb text-yellow-500"></i>
+                <span>Create your document content below using the rich text editor</span>
+            </p>
+            <div class="flex items-center space-x-2">
+                <span class="text-sm text-gray-500">Word count:</span>
+                <span id="wordCount" class="text-sm font-semibold text-blue-600">0</span>
+            </div>
+        </div>
+        
+        <!-- Quill Editor Container -->
+        <div id="editor-container" class="bg-white border-2 border-gray-200 rounded-xl shadow-inner min-h-[400px]">
+            <div id="quill-editor" class="min-h-[400px]"></div>
+        </div>
+        
+        <!-- Save Content Button -->
+        <div class="mt-6 flex justify-end">
+            <button onclick="saveEditorContent()" 
+                    class="flex items-center space-x-2 px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                <i class="fas fa-save"></i>
+                <span>Save Content</span>
+            </button>
+        </div>
+
+        <!-- Editor Status -->
+        <div id="editorStatus" class="hidden mt-6 p-6 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl">
+            <div class="flex items-center space-x-3">
+                <i class="fas fa-check-circle text-green-600 text-2xl"></i>
+                <div>
+                    <h4 class="text-lg font-semibold text-green-900">Content Saved!</h4>
+                    <p class="text-green-700 text-sm">Your document content has been saved successfully</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error Message -->
+    <div id="error-message" class="hidden mt-6 p-4 bg-red-50 border-2 border-red-200 rounded-xl">
+        <div class="flex items-center space-x-3">
+            <i class="fas fa-exclamation-circle text-red-600 text-xl"></i>
+            <p class="text-red-800 font-medium"></p>
+        </div>
+    </div>
+</div>
+
+<script>
+let quillEditor;
+let currentTab = 'upload';
+
+// Initialize Quill editor
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof Quill !== 'undefined') {
+        quillEditor = new Quill('#quill-editor', {
+            theme: 'snow',
+            placeholder: 'Start typing your document content here...',
+            modules: {
+                toolbar: [
+                    [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+                    ['bold', 'italic', 'underline', 'strike'],
+                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                    [{ 'indent': '-1'}, { 'indent': '+1' }],
+                    [{ 'align': [] }],
+                    ['link'],
+                    ['clean']
+                ]
+            }
+        });
+
+        // Update word count
+        quillEditor.on('text-change', function() {
+            const text = quillEditor.getText().trim();
+            const words = text ? text.split(/\s+/).length : 0;
+            document.getElementById('wordCount').textContent = words;
+        });
+    }
+});
+
+function switchTab(tab) {
+    currentTab = tab;
+    
+    // Update tab buttons
+    document.getElementById('tab-upload').classList.remove('text-blue-600', 'border-blue-600');
+    document.getElementById('tab-upload').classList.add('text-gray-500', 'border-transparent');
+    document.getElementById('tab-editor').classList.remove('text-blue-600', 'border-blue-600');
+    document.getElementById('tab-editor').classList.add('text-gray-500', 'border-transparent');
+    
+    if (tab === 'upload') {
+        document.getElementById('tab-upload').classList.add('text-blue-600', 'border-blue-600');
+        document.getElementById('tab-upload').classList.remove('text-gray-500', 'border-transparent');
+        document.getElementById('content-upload').classList.remove('hidden');
+        document.getElementById('content-editor').classList.add('hidden');
+    } else {
+        document.getElementById('tab-editor').classList.add('text-blue-600', 'border-blue-600');
+        document.getElementById('tab-editor').classList.remove('text-gray-500', 'border-transparent');
+        document.getElementById('content-upload').classList.add('hidden');
+        document.getElementById('content-editor').classList.remove('hidden');
+    }
+}
+
+async function saveEditorContent() {
+    if (!quillEditor) {
+        showError('Editor not initialized');
+        return;
+    }
+
+    const content = quillEditor.root.innerHTML;
+    const text = quillEditor.getText().trim();
+    
+    if (!text || text.length < 50) {
+        showError('Please write at least 50 characters of content');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/save-editor-content', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ content: content, text: text })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            document.getElementById('editorStatus').classList.remove('hidden');
+            updateNextButtonState(true);
+            setTimeout(() => {
+                document.getElementById('editorStatus').classList.add('hidden');
+            }, 3000);
+        } else {
+            showError(data.error || 'Failed to save content');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showError('Failed to save content. Please try again.');
+    }
+}
+</script>
+
+<style>
+.upload-zone {
+    border-width: 3px;
+}
+
+.upload-zone.dragover {
+    border-color: #3b82f6;
+    background-color: #eff6ff;
+}
+
+.ql-toolbar {
+    border-top-left-radius: 0.75rem;
+    border-top-right-radius: 0.75rem;
+    background: #f9fafb;
+    border-color: #e5e7eb !important;
+}
+
+.ql-container {
+    border-bottom-left-radius: 0.75rem;
+    border-bottom-right-radius: 0.75rem;
+    border-color: #e5e7eb !important;
+    font-size: 16px;
+}
+
+.ql-editor {
+    min-height: 400px;
+    padding: 1.5rem;
+}
+
+.ql-editor.ql-blank::before {
+    font-style: normal;
+    color: #9ca3af;
+}
+</style>
+{% endblock %}
