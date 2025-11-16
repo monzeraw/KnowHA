@@ -147,6 +147,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
+        // Make quillEditor globally accessible
+        window.quillEditor = quillEditor;
+
         // Update word count
         quillEditor.on('text-change', function() {
             const text = quillEditor.getText().trim();
@@ -216,6 +219,9 @@ async function saveEditorContent() {
         showError('Failed to save content. Please try again.');
     }
 }
+
+// Make saveEditorContent globally accessible
+window.saveEditorContent = saveEditorContent;
 </script>
 
 <style>

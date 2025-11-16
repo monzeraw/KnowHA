@@ -33,25 +33,70 @@ KNOWLEDGE_TYPES = {
         'title': 'Best Practices',
         'description': 'Document proven methods and techniques that deliver superior results.',
         'templateFile': 'templates/best_practices_template.docx',
-        'sampleFile': 'samples/best_practices_sample.docx'
+        'sampleFile': 'samples/best_practices_sample.docx',
+        'elements': [
+            'Executive Summary',
+            'Introduction',
+            'Scope and Context',
+            'Best Practice Description',
+            'Implementation Guidelines',
+            'Benefits and Outcomes',
+            'Supporting Evidence',
+            'Recommendations',
+            'Conclusion'
+        ]
     },
     'lessonsLearned': {
         'title': 'Lessons Learned',
         'description': 'Capture insights from projects and experiences for future reference.',
         'templateFile': 'templates/lessons_learned_template.docx',
-        'sampleFile': 'samples/lessons_learned_sample.docx'
+        'sampleFile': 'samples/lessons_learned_sample.docx',
+        'elements': [
+            'Executive Summary',
+            'Project Background',
+            'Problem Statement',
+            'What Went Well',
+            'What Went Wrong',
+            'Root Cause Analysis',
+            'Lessons Learned',
+            'Recommendations',
+            'Action Items'
+        ]
     },
     'engineeringReport': {
         'title': 'Engineering Report',
         'description': 'Create formal technical reports with comprehensive analysis.',
         'templateFile': 'templates/engineering_report_template.docx',
-        'sampleFile': 'samples/engineering_report_sample.docx'
+        'sampleFile': 'samples/engineering_report_sample.docx',
+        'elements': [
+            'Title Page',
+            'Abstract',
+            'Table of Contents',
+            'Introduction',
+            'Methodology',
+            'Results and Analysis',
+            'Discussion',
+            'Conclusions',
+            'Recommendations',
+            'References'
+        ]
     },
     'engineeringStandards': {
         'title': 'Engineering Standards',
         'description': 'Authoritative documents for technical criteria, methods, and practices in engineering.',
         'templateFile': 'templates/engineering_standards_template.docx',
-        'sampleFile': 'samples/engineering_standards_sample.docx'
+        'sampleFile': 'samples/engineering_standards_sample.docx',
+        'elements': [
+            'Title and Identification',
+            'Scope',
+            'Normative References',
+            'Terms and Definitions',
+            'Technical Requirements',
+            'Test Methods',
+            'Compliance Criteria',
+            'Quality Assurance',
+            'Documentation Requirements'
+        ]
     }
 }
 
@@ -82,7 +127,7 @@ def extract_text_from_docx(file_path):
     return text
 
 def analyze_with_chatgpt(content, doc_type, doc_info):
-    """Analyze document content using ChatGPT API."""
+    """Analyze document content using ChatGPT API with element-based status."""
     try:
         api_key = os.getenv('OPENAI_API_KEY')
         if not api_key:
@@ -91,83 +136,137 @@ def analyze_with_chatgpt(content, doc_type, doc_info):
             
         client = OpenAI(api_key=api_key)
         
+        # Get expected elements for this document type
+        expected_elements = doc_info.get('elements', [
+            'Executive Summary',
+            'Introduction',
+            'Problem Statement',
+            'Methodology',
+            'Analysis',
+            'Results',
+            'Recommendations',
+            'Conclusion'
+        ])
+        
         prompt = f"""
-        Analyze this {doc_info['title']} and provide exactly:
-        1. Five-point document structure (use numbers 1-5)
-        2. Four specific improvement suggestions (use bullet points with •)
-        3. A quality score (0-100)
+        Analyze this {doc_info['title']} document and evaluate the following required elements.
+        For each element, determine its status: EXISTS (complete and well-documented), PARTIAL (present but needs improvement), or MISSING (completely absent).
         
-        Format your response clearly with these sections.
+        Required Elements to Check:
+        {chr(10).join([f"- {elem}" for elem in expected_elements])}
         
-        Content excerpt:
-        {content[:3000]}
+        For each element, provide:
+        1. Status (EXISTS, PARTIAL, or MISSING)
+        2. Brief description of what you found (or what's missing)
+        3. Specific action needed to improve (if PARTIAL or MISSING)
+        
+        Also provide:
+        - Overall quality score (0-100)
+        - 3-5 overall recommendations for the document
+        
+        Format your response as JSON:
+        {{
+            "elements": [
+                {{
+                    "name": "Element Name",
+                    "status": "EXISTS|PARTIAL|MISSING",
+                    "description": "What was found or what's missing",
+                    "action": "What needs to be done (if applicable)"
+                }}
+            ],
+            "quality_score": 75,
+            "recommendations": ["Recommendation 1", "Recommendation 2"]
+        }}
+        
+        Document Content:
+        {content[:4000]}
         """
 
-        print("Sending request to OpenAI...")
+        print("Sending request to OpenAI for element analysis...")
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "You are a technical document analyst. Provide structured analysis with numbered points for structure, bulleted points for suggestions, and a quality score."},
+                {"role": "system", "content": "You are a technical document analyst. Analyze documents by evaluating the presence and quality of required elements. Always respond with valid JSON."},
                 {"role": "user", "content": prompt}
             ],
-            max_tokens=500,
-            temperature=0.4,
-            timeout=20
+            max_tokens=1500,
+            temperature=0.3,
+            timeout=30
         )
         
         result = response.choices[0].message.content
         print(f"Received response: {len(result)} characters")
-        return result
+        
+        # Parse JSON response
+        try:
+            # Extract JSON from markdown code blocks if present
+            if '```json' in result:
+                result = result.split('```json')[1].split('```')[0].strip()
+            elif '```' in result:
+                result = result.split('```')[1].split('```')[0].strip()
+            
+            analysis_data = json.loads(result)
+            
+            # Calculate summary stats
+            summary = {
+                'exists': sum(1 for e in analysis_data['elements'] if e['status'].upper() == 'EXISTS'),
+                'partial': sum(1 for e in analysis_data['elements'] if e['status'].upper() == 'PARTIAL'),
+                'missing': sum(1 for e in analysis_data['elements'] if e['status'].upper() == 'MISSING')
+            }
+            analysis_data['summary'] = summary
+            
+            return analysis_data
+        except json.JSONDecodeError as e:
+            print(f"JSON parsing error: {e}")
+            print(f"Response content: {result}")
+            # Return default structure if JSON parsing fails
+            return create_default_analysis(expected_elements)
+            
     except Exception as e:
         print(f"ChatGPT analysis error: {str(e)}")
         import traceback
         traceback.print_exc()
         return None
 
+def create_default_analysis(expected_elements):
+    """Create a default analysis structure when API fails."""
+    return {
+        "elements": [
+            {
+                "name": elem,
+                "status": "PARTIAL",
+                "description": "Unable to analyze - please try again",
+                "action": "Re-run the analysis to get detailed feedback"
+            }
+            for elem in expected_elements[:5]
+        ],
+        "quality_score": 50,
+        "recommendations": [
+            "Ensure all required sections are present",
+            "Add more detailed content to each section",
+            "Include supporting evidence and examples"
+        ],
+        "summary": {
+            "exists": 0,
+            "partial": len(expected_elements[:5]),
+            "missing": 0
+        }
+    }
+
 def parse_analysis_response(analysis):
-    """Parse Gemini's response into structured data."""
-    structure = ['Executive Summary', 'Introduction', 'Main Content', 'Analysis', 'Conclusion']
-    suggestions = ['Add more detail', 'Include examples', 'Enhance formatting', 'Add references']
-    quality_score = 75
-
-    if not analysis:
-        return structure, suggestions, quality_score
-
-    lines = analysis.split('\n')
-    struct_points = []
-    suggest_points = []
-
-    for line in lines:
-        line = line.strip()
-        if not line:
-            continue
-            
-        # Structure points (numbered)
-        if line and line[0].isdigit() and '.' in line:
-            point = line.split('.', 1)[1].strip()
-            if len(struct_points) < 5:
-                struct_points.append(point)
-        
-        # Suggestions (bulleted)
-        elif line and line[0] in '•-*':
-            suggestion = line.strip('•-* ')
-            if len(suggest_points) < 4:
-                suggest_points.append(suggestion)
-        
-        # Quality score
-        elif 'score' in line.lower():
-            score_match = re.search(r'\d+', line)
-            if score_match:
-                score = int(score_match.group())
-                if 0 <= score <= 100:
-                    quality_score = score
-
-    if len(struct_points) >= 3:
-        structure = struct_points
-    if len(suggest_points) >= 2:
-        suggestions = suggest_points
-
-    return structure, suggestions, quality_score
+    """Legacy function - now analysis is returned as structured JSON."""
+    # This function is kept for backward compatibility but is no longer used
+    # Analysis is now returned directly as a dictionary from analyze_with_chatgpt
+    if isinstance(analysis, dict):
+        return analysis
+    
+    # Fallback for non-dict responses
+    return {
+        "elements": [],
+        "quality_score": 0,
+        "recommendations": [],
+        "summary": {"exists": 0, "partial": 0, "missing": 0}
+    }
 
 @app.route('/')
 def index():
@@ -177,7 +276,7 @@ def index():
 
 @app.route('/step/<int:step_number>', methods=['GET'])
 def step(step_number):
-    if step_number < 1 or step_number > 5:
+    if step_number < 1 or step_number > 6:
         return redirect(url_for('index'))
 
     # Ensure proper flow
@@ -185,7 +284,7 @@ def step(step_number):
         flash('Please select a document type first')
         return redirect(url_for('step', step_number=1))
     if step_number > 2 and 'file_path' not in session:
-        flash('Please upload a file first')
+        flash('Please upload or create a document first')
         return redirect(url_for('step', step_number=2))
     if step_number > 3 and 'analysis' not in session:
         flash('Please complete the analysis first')
@@ -303,8 +402,16 @@ def upload_document():
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(file_path)
         
+        # Extract text content
+        extracted_text = ''
+        if file_path.endswith('.pdf'):
+            extracted_text = extract_text_from_pdf(file_path)
+        else:
+            extracted_text = extract_text_from_docx(file_path)
+        
         # Store file info in session
         session['file_path'] = file_path
+        session['file_content'] = extracted_text
         session['file_info'] = {
             'name': filename,
             'size': os.path.getsize(file_path),
@@ -316,6 +423,7 @@ def upload_document():
         return jsonify({
             'success': True,
             'file_info': session['file_info'],
+            'extracted_text': extracted_text,
             'next_step': 3
         })
 
@@ -421,22 +529,17 @@ def analyze_document():
             return jsonify({'success': False, 'error': 'ChatGPT analysis failed. Please check your API key and try again.'})
         
         print("Analysis completed successfully")
-        structure, suggestions, quality_score = parse_analysis_response(analysis)
         
-        # Prepare the final result
-        analysis_result = {
-            'structure': structure,
-            'suggestions': suggestions,
-            'quality_score': quality_score,
-            'analyzed_at': datetime.now().isoformat()
-        }
+        # Analysis is now returned as a structured dictionary
+        # Add timestamp
+        analysis['analyzed_at'] = datetime.now().isoformat()
         
         # Store in session and return
-        session['analysis'] = analysis_result
+        session['analysis'] = analysis
         return jsonify({
             'success': True,
             'next_step': 4,
-            'analysis': analysis_result
+            'analysis': analysis
         })
         
     except Exception as e:

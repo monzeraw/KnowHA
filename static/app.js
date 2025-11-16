@@ -210,6 +210,43 @@ async function handleFileUpload(file) {
                 document.getElementById('uploadZone').insertAdjacentElement('afterend', fileInfo);
             }
             
+            // Switch to editor tab and populate with extracted text
+            if (data.extracted_text && window.quillEditor) {
+                // Switch to editor tab
+                document.getElementById('tab-editor').click();
+                
+                // Populate editor with extracted text
+                window.quillEditor.setText(data.extracted_text);
+                
+                // Show notification
+                const notification = document.createElement('div');
+                notification.className = 'mt-4 p-4 bg-green-50 border-2 border-green-200 rounded-xl';
+                notification.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <i class="fas fa-check-circle text-green-600 text-xl"></i>
+                        <div>
+                            <h4 class="text-lg font-semibold text-green-900">Text Extracted!</h4>
+                            <p class="text-green-700 text-sm">Document text has been loaded into the editor. You can now edit it before analyzing.</p>
+                        </div>
+                    </div>
+                `;
+                
+                const editorContainer = document.getElementById('content-editor');
+                const existingNotification = editorContainer.querySelector('.bg-green-50');
+                if (existingNotification) {
+                    existingNotification.replaceWith(notification);
+                } else {
+                    editorContainer.insertBefore(notification, editorContainer.firstChild);
+                }
+                
+                // Auto-save after a moment
+                setTimeout(() => {
+                    if (window.saveEditorContent) {
+                        window.saveEditorContent();
+                    }
+                }, 1000);
+            }
+            
             // Update next button state
             updateNextButtonState(true);
         } else {
@@ -298,50 +335,150 @@ function displayAnalysisResults(analysis) {
     const analysisSection = document.querySelector('.analysis-section');
     if (!analysisSection) return;
 
-    analysisSection.innerHTML = `
-        <div class="bg-white rounded-xl shadow-sm p-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="space-y-4">
-                    <h3 class="text-lg font-semibold text-gray-900">Document Structure</h3>
-                    <ul class="space-y-2">
-                        ${analysis.structure.map((item, index) => `
-                            <li class="flex items-start space-x-2">
-                                <span class="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full bg-blue-100 text-blue-600 text-sm">${index + 1}</span>
-                                <span class="text-gray-700">${item}</span>
-                            </li>
-                        `).join('')}
-                    </ul>
-                </div>
-                <div class="space-y-4">
-                    <h3 class="text-lg font-semibold text-gray-900">Improvement Suggestions</h3>
-                    <ul class="space-y-2">
-                        ${analysis.suggestions.map(suggestion => `
-                            <li class="flex items-start space-x-2">
-                                <svg class="w-5 h-5 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                                </svg>
-                                <span class="text-gray-700">${suggestion}</span>
-                            </li>
-                        `).join('')}
-                    </ul>
-                </div>
-            </div>
-            <div class="mt-6">
-                <h3 class="text-lg font-semibold text-gray-900 mb-2">Quality Score</h3>
-                <div class="relative pt-1">
-                    <div class="overflow-hidden h-2 text-xs flex rounded bg-blue-100">
-                        <div class="rounded bg-blue-600 transition-all duration-500 ease-out" 
-                             style="width: ${analysis.quality_score}%">
+    // Build the analysis report HTML
+    let html = `
+        <div class="analysis-results slide-in">
+            <!-- Color Legend -->
+            <div class="mb-8 p-6 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200">
+                <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center space-x-2">
+                    <i class="fas fa-info-circle text-blue-600"></i>
+                    <span>Status Legend</span>
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="flex items-center space-x-3 p-3 bg-white rounded-lg shadow-sm">
+                        <div class="w-4 h-4 rounded-full bg-green-500"></div>
+                        <div>
+                            <p class="font-semibold text-green-900">Exists</p>
+                            <p class="text-xs text-green-700">Section is complete and well-documented</p>
                         </div>
                     </div>
-                    <div class="flex justify-between text-sm text-gray-600 mt-1">
-                        <span>Score: ${analysis.quality_score}/100</span>
-                        <span>${analysis.quality_score >= 80 ? '🌟 Excellent' : analysis.quality_score >= 60 ? '👍 Good' : '🔨 Needs Improvement'}</span>
+                    <div class="flex items-center space-x-3 p-3 bg-white rounded-lg shadow-sm">
+                        <div class="w-4 h-4 rounded-full bg-yellow-500"></div>
+                        <div>
+                            <p class="font-semibold text-yellow-900">Partial</p>
+                            <p class="text-xs text-yellow-700">Section exists but needs improvement</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-3 p-3 bg-white rounded-lg shadow-sm">
+                        <div class="w-4 h-4 rounded-full bg-red-500"></div>
+                        <div>
+                            <p class="font-semibold text-red-900">Missing</p>
+                            <p class="text-xs text-red-700">Section is completely absent</p>
+                        </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Summary Stats -->
+            <div class="mb-8 grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-xl border-2 border-green-200">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-green-700">Complete</p>
+                            <p class="text-3xl font-bold text-green-900">${analysis.summary?.exists || 0}</p>
+                        </div>
+                        <i class="fas fa-check-circle text-green-500 text-3xl"></i>
+                    </div>
+                </div>
+                <div class="bg-gradient-to-br from-yellow-50 to-yellow-100 p-6 rounded-xl border-2 border-yellow-200">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-yellow-700">Partial</p>
+                            <p class="text-3xl font-bold text-yellow-900">${analysis.summary?.partial || 0}</p>
+                        </div>
+                        <i class="fas fa-exclamation-circle text-yellow-500 text-3xl"></i>
+                    </div>
+                </div>
+                <div class="bg-gradient-to-br from-red-50 to-red-100 p-6 rounded-xl border-2 border-red-200">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-red-700">Missing</p>
+                            <p class="text-3xl font-bold text-red-900">${analysis.summary?.missing || 0}</p>
+                        </div>
+                        <i class="fas fa-times-circle text-red-500 text-3xl"></i>
+                    </div>
+                </div>
+                <div class="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-xl border-2 border-blue-200">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-blue-700">Score</p>
+                            <p class="text-3xl font-bold text-blue-900">${analysis.quality_score || 0}%</p>
+                        </div>
+                        <i class="fas fa-chart-line text-blue-500 text-3xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Elements List -->
+            <div class="mb-6">
+                <h3 class="text-xl font-bold text-gray-900 mb-4 flex items-center space-x-2">
+                    <i class="fas fa-list-check text-blue-600"></i>
+                    <span>Document Elements Analysis</span>
+                </h3>
+                <div class="space-y-4">
+    `;
+
+    // Add each element
+    if (analysis.elements && analysis.elements.length > 0) {
+        analysis.elements.forEach((element, index) => {
+            const statusClass = element.status.toLowerCase();
+            const statusIcon = statusClass === 'exists' ? 'fa-check-circle' : 
+                              statusClass === 'partial' ? 'fa-exclamation-circle' : 
+                              'fa-times-circle';
+            const statusColor = statusClass === 'exists' ? 'text-green-600' : 
+                               statusClass === 'partial' ? 'text-yellow-600' : 
+                               'text-red-600';
+
+            html += `
+                <div class="element-card ${statusClass} bg-white rounded-xl p-6 shadow-sm border border-gray-200" style="animation-delay: ${index * 0.1}s">
+                    <div class="flex items-start justify-between mb-3">
+                        <div class="flex items-center space-x-3">
+                            <i class="fas ${statusIcon} ${statusColor} text-2xl"></i>
+                            <h4 class="text-lg font-bold text-gray-900">${element.name}</h4>
+                        </div>
+                        <span class="status-badge status-${statusClass}">
+                            ${element.status.toUpperCase()}
+                        </span>
+                    </div>
+                    <p class="text-gray-700 mb-4">${element.description || ''}</p>
+                    ${element.action ? `
+                        <div class="mt-4 p-4 bg-blue-50 border-l-4 border-blue-500 rounded">
+                            <p class="text-sm font-semibold text-blue-900 mb-1">
+                                <i class="fas fa-lightbulb text-blue-600 mr-2"></i>Action Required:
+                            </p>
+                            <p class="text-sm text-blue-800">${element.action}</p>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        });
+    }
+
+    html += `
+                </div>
+            </div>
+
+            <!-- Overall Recommendations -->
+            ${analysis.recommendations && analysis.recommendations.length > 0 ? `
+                <div class="mt-8 p-6 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border-2 border-purple-200">
+                    <h3 class="text-xl font-bold text-gray-900 mb-4 flex items-center space-x-2">
+                        <i class="fas fa-magic text-purple-600"></i>
+                        <span>Overall Recommendations</span>
+                    </h3>
+                    <ul class="space-y-3">
+                        ${analysis.recommendations.map(rec => `
+                            <li class="flex items-start space-x-3">
+                                <i class="fas fa-arrow-right text-purple-600 mt-1"></i>
+                                <span class="text-gray-700">${rec}</span>
+                            </li>
+                        `).join('')}
+                    </ul>
+                </div>
+            ` : ''}
         </div>
     `;
+
+    analysisSection.innerHTML = html;
 }
 
 // Initialize on page load
